@@ -1,6 +1,24 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.IO;
 using UnityEngine;
+
+
+[System.Serializable]
+class PlayerData
+{
+    public string playerPosition;
+    public string playerRotation;
+
+    public PlayerData()
+    {
+        playerPosition = "";
+        playerRotation = "";
+    }
+}
+
 
 public class GameSaveManager : MonoBehaviour
 {
@@ -28,31 +46,61 @@ public class GameSaveManager : MonoBehaviour
     // Data Serialization = Encoding the data
     private void SaveData()
     {
-        var positionString = JsonUtility.ToJson(player.position);
-        var rotationString = JsonUtility.ToJson(player.localEulerAngles);
+        BinaryFormatter bf = new BinaryFormatter();
+        FileStream file = File.Create(Application.persistentDataPath + "/playerData.dat");
+        PlayerData data = new PlayerData(); // creates an empty PlayerData object
 
-        PlayerPrefs.SetString("position", positionString);
-        PlayerPrefs.SetString("rotation", rotationString);
-        PlayerPrefs.Save();
+        data.playerPosition = JsonUtility.ToJson(player.position);
+        data.playerRotation = JsonUtility.ToJson(player.localEulerAngles);
+
+
+        bf.Serialize(file, data);
+        file.Close();
+
+        // Player Prefs Example
+        //var positionString = JsonUtility.ToJson(player.position);
+        //var rotationString = JsonUtility.ToJson(player.localEulerAngles);
+
+        //PlayerPrefs.SetString("position", positionString);
+        //PlayerPrefs.SetString("rotation", rotationString);
+        //PlayerPrefs.Save();
+
+        print("Player Data Saved!");
     }
 
     // Data Deserialization = Decoding the Data
     private void LoadData()
     {
-        var position = JsonUtility.FromJson<Vector3>(PlayerPrefs.GetString("position"));
-        var rotation = JsonUtility.FromJson<Vector3>(PlayerPrefs.GetString("rotation"));
-        var camera = JsonUtility.FromJson<Vector3>(PlayerPrefs.GetString("camera"));
+        if (File.Exists(Application.persistentDataPath + "/playerData.dat"))
+        {
+            BinaryFormatter bf = new BinaryFormatter();
+            FileStream file = File.Open(Application.persistentDataPath + "/playerData.dat", FileMode.Open);
+            PlayerData data = (PlayerData)bf.Deserialize(file);
+            file.Close();
 
-        player.gameObject.GetComponent<CharacterController>().enabled = false;
-        player.position = position;
-        player.rotation = Quaternion.Euler(rotation.x, rotation.y, rotation.z);
-        playerCam.rotation = Quaternion.Euler(camera.x, camera.y, camera.z);
-        player.gameObject.GetComponent<CharacterController>().enabled = true;
+
+            var position = JsonUtility.FromJson<Vector3>(data.playerPosition);
+            var rotation = JsonUtility.FromJson<Vector3>(data.playerRotation);
+            player.gameObject.GetComponent<CharacterController>().enabled = false;
+            player.position = position;
+            player.rotation = Quaternion.Euler(rotation.x, rotation.y, rotation.z);
+            player.gameObject.GetComponent<CharacterController>().enabled = true;
+        }
+
+        // Player Prefs Example
+        //var position = JsonUtility.FromJson<Vector3>(PlayerPrefs.GetString("position"));
+        //var rotation = JsonUtility.FromJson<Vector3>(PlayerPrefs.GetString("rotation"));
+
+        //player.gameObject.GetComponent<CharacterController>().enabled = false;
+        //player.position = position;
+        //player.rotation = Quaternion.Euler(rotation.x, rotation.y, rotation.z);
+        //player.gameObject.GetComponent<CharacterController>().enabled = true;
     }
 
     private void ResetData()
     {
-        PlayerPrefs.DeleteAll();
+        // Player Prefs Example
+        //PlayerPrefs.DeleteAll();
     }
 
     public void OnSaveButton_Pressed()
